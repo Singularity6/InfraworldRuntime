@@ -153,28 +153,34 @@ struct INFRAWORLDRUNTIME_API FGrpcClientContext
 
 // ~~~~~ Wrappers for CONTEXT and STATUS ~~~~~
 
-template<class TRequestType>
+template<class TRequestType, class TResponseType>
 struct TRequestWithContext
 {
     TRequestType Request;
     FGrpcClientContext Context;
+	TFunction<void(const TResponseType&)> SuccessCallback;
+	TFunction<void(const FGrpcStatus&)> FailureCallback;
 
     TRequestWithContext()
     {
     }
 
-    TRequestWithContext(const TRequestType& InRequest, const FGrpcClientContext& InContext) :
-        Request(InRequest),
-        Context(InContext)
+    TRequestWithContext(const TRequestType& InRequest, const FGrpcClientContext& InContext, 
+		TFunction<void(const TResponseType&)> InSuccessCallback, TFunction<void(const FGrpcStatus&)> InFailureCallback)
+		: Request(InRequest)
+        , Context(InContext)
+		, SuccessCallback(InSuccessCallback)
+		, FailureCallback(InFailureCallback)
     {
     }
 };
 
 // Special constructor, automatically inferring arguments.
-template<class T>
-TRequestWithContext<T> TRequestWithContext$New(const T& InRequest, const FGrpcClientContext& InContext)
+template<class TRequestType, class TResponseType>
+TRequestWithContext<TRequestType, TResponseType> MakeRequestWithContext(const TRequestType& InRequest, const FGrpcClientContext& InContext,
+	TFunction<void(const TResponseType&)> InSuccessCallback, TFunction<void(const FGrpcStatus&)> InFailureCallback)
 {
-    return TRequestWithContext<T>(InRequest, InContext);
+    return TRequestWithContext<TRequestType, TResponseType>(InRequest, InContext, InSuccessCallback, InFailureCallback);
 }
 
 /**
@@ -362,14 +368,22 @@ struct TResponseWithStatus
 {
     TResponseType Response;
     FGrpcStatus Status;
+	TFunction<void(const TResponseType&)> SuccessCallback;
+	TFunction<void(const FGrpcStatus&)> FailureCallback;
 
     TResponseWithStatus()
     {
     }
 
-    TResponseWithStatus(const TResponseType& InResponse, const FGrpcStatus& InStatus) :
-        Response(InResponse),
-        Status(InStatus)
-    {
+    TResponseWithStatus(const TResponseType& InResponse, const FGrpcStatus& InStatus)
+		: Response(InResponse)
+        , Status(InStatus)
+	{
     }
+
+	void SetCallbacks(TFunction<void(const TResponseType&)> InSuccessCallback, TFunction<void(const FGrpcStatus&)> InFailureCallback)
+	{
+		SuccessCallback = InSuccessCallback;
+		FailureCallback = InFailureCallback;
+	}
 };

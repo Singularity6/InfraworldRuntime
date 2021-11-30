@@ -18,6 +18,7 @@
 #include "CoreMinimal.h"
 #include "HAL/PlatformTLS.h"
 #include "Containers/Queue.h"
+#include "GenUtils.h"
 
 /**
  * A conduit is a combination of two channel: The Request channel, and the Response channel, representing bidirectional queue.
@@ -62,38 +63,38 @@ public:
     }
 
 // Enqueue:
-    bool Enqueue(const TRequest& Item)
+    bool Enqueue(const TRequestWithContext<TRequest, TResponse>& Item)
     {
         UE_CLOG(ThreadID() != RequestsProducerID, LogTemp, Fatal, TEXT("Can't call Enqueue(const TRequest&), invalid thread. Expected: %u, got: %u"), ResponsesProducerID, ThreadID());
         return Requests.Enqueue(Item);
     }
 
-    bool Enqueue(const TResponse& Item)
+    bool Enqueue(const TResponseWithStatus<TResponse>& Item)
     {
         UE_CLOG(ThreadID() != ResponsesProducerID, LogTemp, Fatal, TEXT("Can't call Enqueue(const TResponse&), invalid thread. Expected: %u, got: %u"), RequestsProducerID, ThreadID());
         return Responses.Enqueue(Item);
     }
 
-    bool Enqueue(TRequest&& Item)
+    bool Enqueue(TRequestWithContext<TRequest, TResponse>&& Item)
     {
         UE_CLOG(ThreadID() != RequestsProducerID, LogTemp, Fatal, TEXT("Can't call Enqueue(const TRequest&), invalid thread. Expected: %u, got: %u"), ResponsesProducerID, ThreadID());
         return Requests.Enqueue(Item);
     }
 
-    bool Enqueue(TResponse&& Item)
+    bool Enqueue(TResponseWithStatus<TResponse>&& Item)
     {
         UE_CLOG(ThreadID() != ResponsesProducerID, LogTemp, Fatal, TEXT("Can't call Enqueue(const TResponse&), invalid thread. Expected: %u, got: %u"), RequestsProducerID, ThreadID());
         return Responses.Enqueue(Item);
     }
 
 // Dequeue
-    bool Dequeue(TRequest& OutItem)
+    bool Dequeue(TRequestWithContext<TRequest, TResponse>& OutItem)
     {
         UE_CLOG(ThreadID() != ResponsesProducerID, LogTemp, Fatal, TEXT("Can't call Dequeue(TRequest& OutItem), invalid thread. Expected: %u, got: %u"), ResponsesProducerID, ThreadID());
         return Requests.Dequeue(OutItem);
     }
 
-    bool Dequeue(TResponse& OutItem)
+    bool Dequeue(TResponseWithStatus<TResponse>& OutItem)
     {
         UE_CLOG(ThreadID() != RequestsProducerID, LogTemp, Fatal, TEXT("Can't call Dequeue(TResponse& OutItem), invalid thread. Expected: %u, got: %u"), RequestsProducerID, ThreadID());
         return Responses.Dequeue(OutItem);
@@ -116,8 +117,8 @@ public:
     }
 
 private:
-    TQueue<TRequest> Requests;
-    TQueue<TResponse> Responses;
+    TQueue<TRequestWithContext<TRequest, TResponse>> Requests;
+    TQueue<TResponseWithStatus<TResponse>> Responses;
 
     volatile uint32 RequestsProducerID;
     volatile uint32 ResponsesProducerID;
